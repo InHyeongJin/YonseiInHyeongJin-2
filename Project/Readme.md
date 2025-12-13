@@ -1,174 +1,53 @@
-# 📈 PyTorch 기반 딥러닝을 활용한 주가 등락 예측 및 자동매매 시뮬레이션
-
-#### **기계학습과응용 / 인형진 (2021131028)**
+# 📈 기계학습 기반 주가 예측 및 자동매매 시뮬레이션 프로젝트
+#### 기계학습과 응용 / [본인 이름] ([본인 학번])
 
 ---
 
 ## 1. 모티베이션 (프로젝트를 하게 된 동기)
 
-지난 학기 ‘수학과 프로그래밍’ 수업에서 선형 점화식을 이용한 주가 예측 프로젝트를 진행하며, 수학적 모델링이 실제 금융 데이터에 적용되는 과정에 큰 흥미를 느꼈습니다. 하지만 단순 선형 회귀 모델은 주가의 비선형적인 패턴과 급격한 변동성을 담아내기에는 한계가 있음을 체감했습니다.
+지난 학기 ‘수학과 프로그래밍’ 수업에서 점화식을 활용한 주가 예측 시뮬레이터를 개발한 경험이 있습니다. 당시 프로젝트는 수학적 모델을 코드로 구현하는 데에는 성공했으나, **랜덤하게 생성된 가상 데이터(Random Walk)**를 사용했다는 점과 단순한 **선형 점화식**에 의존했다는 한계가 있었습니다.
 
-이번 ‘기계학습과 응용’ 수업을 통해 **딥러닝(Deep Learning)**과 **분류(Classification)** 기법을 배우면서, 기존의 선형 모델을 넘어선 고도화된 예측 시스템을 구축해보고 싶었습니다. 특히, 수업의 핵심인 **PyTorch**를 활용하여 다층 퍼셉트론(MLP) 모델을 직접 구현하고, 이를 Scikit-learn의 전통적인 머신러닝 알고리즘들과 비교해 봄으로써 딥러닝의 효용성을 검증하고자 합니다. 또한, 단순 예측을 넘어 수수료와 슬리피지를 고려한 현실적인 백테스팅을 통해 실제 투자 전략으로서의 가능성을 확인해보고자 합니다.
+이번 학기 **<기계학습과 응용>** 수업을 통해, 실제 금융 시장의 데이터는 훨씬 복잡하고 비선형적인 패턴(Non-linear Pattern)을 가지고 있음을 배웠습니다. 이에 이전 프로젝트를 발전시켜 다음과 같은 목표로 본 프로젝트를 새롭게 기획하였습니다.
+
+1.  **Real World Data:** 가상 데이터가 아닌 **Yahoo Finance API**를 연동하여 실제 주식(Apple Inc.) 데이터를 분석합니다.
+2.  **Deep Learning:** 단순 회귀를 넘어 **PyTorch 기반의 MLP(Multi-Layer Perceptron)** 모델을 직접 설계하고 적용합니다.
+3.  **Risk Management:** **조기 종료(Early Stopping)**와 **거래 비용(Commission)** 개념을 도입하여 현실적이고 견고한 자동매매 시스템을 구축합니다.
 
 ---
 
 ## 2. 이론적 배경
 
-* **지도 학습 기반의 분류 (Supervised Classification)**: 미래의 구체적인 가격(Regression)을 맞추는 것은 매우 어렵기 때문에, 내일 주가가 오를지(1) 내릴지(0)를 예측하는 **이진 분류 문제**로 정의하여 예측의 정확도를 높입니다.
-* **다층 퍼셉트론 (Multi-Layer Perceptron, MLP)**: 입력층과 출력층 사이에 여러 개의 은닉층(Hidden Layer)을 두고 비선형 활성화 함수(ReLU)를 사용하여 데이터의 복잡한 특징을 학습하는 인공신경망입니다.
-* **피처 엔지니어링 (Feature Engineering)**: 단순히 과거 가격만을 사용하는 것이 아니라, **이동평균 괴리율(MA Ratio)**, **변동성(Volatility)**, **모멘텀(Momentum)** 등 기술적 지표를 생성하여 모델의 학습 효율을 높입니다.
-* **백테스팅 평가지표**:
-    * **Sharpe Ratio**: 위험(변동성) 한 단위당 얻을 수 있는 초과 수익률.
-    * **MDD (Maximum Drawdown)**: 특정 기간 동안 포트폴리오가 겪을 수 있는 최대 손실폭.
+* **이진 분류 (Binary Classification):** 주가를 정확히 맞추는 회귀(Regression) 대신, 내일 주가가 오를지 내릴지를 예측하는 분류 문제로 접근하여 예측의 안정성을 높였습니다.
+* **피처 엔지니어링 (Feature Engineering):** 단순히 '가격'만 보는 것이 아니라, 금융 도메인 지식을 활용해 **이동평균 괴리율(MA Ratio)**, **변동성(Volatility)**, **모멘텀(Momentum)**, **지연 수익률(Lagged Return)** 등을 입력 변수로 가공하여 사용했습니다.
+* **MLP와 조기 종료 (Early Stopping):** 딥러닝 모델이 학습 데이터만 외우는 **과적합(Overfitting)**을 방지하기 위해, 검증(Validation) 오차가 줄어들지 않으면 학습을 중단하는 기법을 적용했습니다.
 
 ---
 
 ## 3. 코드 작성방법 및 설명
 
-### 핵심 구성 요소: 데이터 전처리, 모델링, 시뮬레이션의 모듈화
+전체 코드는 객체 지향 프로그래밍(OOP) 구조로 설계되었으며, 데이터 수집부터 백테스팅까지 파이프라인이 구축되어 있습니다.
 
-### 1. `build_features`
+### 핵심 구성 요소: 데이터 처리 및 모델링
 
-> **역할**: `yfinance`를 통해 수집된 원본 주가 데이터에서 학습에 필요한 기술적 지표(Feature)를 생성하고, 예측 목표(Target)를 정의합니다.
+### 1. `FeatureConfig` & `build_features`
 
-* **Lag Features**: 과거 10일간의 로그 수익률(`ret_lag_k`)을 생성하여 시계열적 패턴을 반영합니다.
-* **MA Ratio**: 5일, 20일 이동평균선 대비 현재 가격의 비율을 계산하여 추세 정보를 담습니다.
-* **Volatility & Momentum**: 변동성과 모멘텀 지표를 추가하여 시장의 과열 여부와 변동성 정보를 제공합니다.
-* **Target (`y`)**: 다음 날의 수익률(`future_ret`)이 0보다 크면 `1`, 아니면 `0`으로 라벨링하여 이진 분류 문제를 설정합니다.
+> **역할**: 원본 주가 데이터를 머신러닝 모델이 학습할 수 있는 형태의 풍부한 파생 변수(Feature)로 변환합니다.
+
+* `FeatureConfig`: 이동평균 기간(5일, 20일), 모멘텀 윈도우 등 하이퍼파라미터를 관리하는 설정 클래스입니다.
+* `build_features(df, cfg)`: 로그 수익률(`log_price`), 과거 수익률(`lag`), 이동평균 대비 비율(`ma_ratio`), 변동성(`vol`) 등을 벡터화 연산으로 고속 처리하여 생성합니다. 타겟 변수(`y`)는 다음 날 수익률이 0보다 크면 1, 아니면 0으로 설정합니다.
 
 ```python
 def build_features(df: pd.DataFrame, cfg: FeatureConfig) -> pd.DataFrame:
-    # ... (로그 수익률 및 Lag 생성) ...
-
-    # Moving Average Ratio (이동평균 괴리율)
+    out = df.copy()
+    # ... (중략) ...
+    # Moving Average Ratio 생성
     for w in cfg.ma_windows:
         ma = out["price"].rolling(w).mean()
         out[f"ma_ratio_{w}"] = out["price"] / ma - 1.0
-
-    # Target 설정 (Next Day Return > 0)
+    
+    # Target: Next Day Return > 0 (내일 오르면 1, 아니면 0)
     out["future_ret"] = out["ret"].shift(-1)
     out["y"] = (out["future_ret"] > 0).astype(int)
-
     return out.dropna().reset_index(drop=True)
-2. TorchMLP & TorchMLPModel
-역할: PyTorch를 활용하여 다층 퍼셉트론(MLP) 모델을 구축하고, Scikit-learn 스타일로 학습 및 예측을 수행합니다.
+```
 
-TorchMLP(__init__): Linear(64) -> ReLU -> Dropout(0.1) 구조를 2층으로 쌓아 비선형성을 학습하며, Dropout을 통해 과적합을 방지합니다.
-
-fit(X, y): Adam 옵티마이저와 BCEWithLogitsLoss를 사용하여 모델을 학습합니다. Epoch를 200회로 설정하여 충분한 학습이 이루어지도록 했습니다.
-
-predict_proba(X): 학습된 모델을 eval() 모드로 전환하고, Sigmoid 함수를 통과시켜 0~1 사이의 상승 확률을 반환합니다.
-
-Python
-
-class TorchMLP(nn.Module):
-    def __init__(self, in_dim):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(in_dim, 64),
-            nn.ReLU(),
-            nn.Dropout(0.1),  # 과적합 방지
-            nn.Linear(64, 64),
-            nn.ReLU(),
-            nn.Dropout(0.1),
-            nn.Linear(64, 1)
-        )
-3. backtest
-역할: 모델의 예측 확률을 기반으로 가상의 매매를 수행하고, 수수료와 슬리피지를 반영한 최종 수익률을 계산합니다.
-
-엄격한 매매 기준: 상승 확률이 **60% 이상(p_buy)**일 때만 매수하고, **40% 이하(p_sell)**일 때 매도하는 기준을 적용하여 잦은 거래를 방지합니다.
-
-비용 반영: 매매 시 commission(0.05%)과 slippage(0.05%)를 차감하여 현실적인 자산 변화를 추적합니다.
-
-성과 지표 계산: 최종 누적 수익률(CumRet), 최대 낙폭(MDD), 샤프 지수(Sharpe)를 계산하여 반환합니다.
-
-Python
-
-def backtest(prices, probs, cfg: BacktestConfig):
-    # ... (중략) ...
-    for price, p in zip(prices, probs):
-        # Buy Signal (60% 이상 확신 시)
-        if shares == 0 and p >= cfg.p_buy:
-            cost = cash * (cfg.commission + cfg.slippage)
-            shares = (cash - cost) / price
-            cash = 0
-            
-        # Sell Signal (40% 이하 확신 시)
-        elif shares > 0 and p <= cfg.p_sell:
-            cash = shares * price * (1 - cfg.commission - cfg.slippage)
-            shares = 0
-4. run
-역할: 전체 프로세스를 총괄하며, 데이터 로드, 모델 학습, 벤치마크 비교, 결과 시각화를 수행합니다.
-
-벤치마크 설정: 단순히 주식을 보유했을 때(Buy & Hold)의 수익률을 계산하여 모델 성능 평가의 기준점으로 삼습니다.
-
-모델 비교 Loop: Logistic Regression, Random Forest, SVM, MLP 모델을 순차적으로 학습시키고 백테스팅을 수행합니다.
-
-시각화: 최종적으로 자산 가치 변화(Equity Curve)와 낙폭 변화(Drawdown Curve) 그래프를 출력합니다.
-
-Python
-
-def run():
-    # ... (데이터 로드 및 분할) ...
-    
-    # 벤치마크 (Buy & Hold) 수익률 계산
-    buy_hold_equity = prices_te / prices_te[0] * bt_cfg.initial_cash
-
-    models = {
-        "MLP": TorchMLPModel(X.shape[1]),
-        "RF": RandomForestClassifier(...),
-        # ...
-    }
-    
-    # ... (모델 학습 및 그래프 출력) ...
-4. 프로젝트의 한계
-시계열 특성의 미반영: 사용된 MLP(피드포워드 신경망)는 시계열 데이터의 순차적(Sequential) 정보를 완벽하게 기억하지 못합니다. (LSTM이나 Transformer 모델 도입 필요)
-
-정적 임계값의 한계: 매매 기준(60%)이 고정되어 있어, 변동성이 큰 하락장이나 횡보장에서는 유연하게 대응하지 못하는 경우가 발생했습니다.
-
-거래 비용의 영향: 예측 정확도가 50%를 넘더라도, 잦은 매매가 발생할 경우 수수료 누적으로 인해 최종 수익률은 마이너스가 될 수 있음을 확인했습니다.
-
-5. 실행 예시
-1) 모델 성능 비교표 (Example Output)
-(실제 실행 결과) | Model | ACC | CumRet | MDD | Sharpe | Trades | | :--- | :--- | :--- | :--- | :--- | :--- | | Buy & Hold | N/A | 0.XX | 0.YY | 0.ZZ | 0 | | MLP | 0.5249 | -0.18 | -0.20 | -0.87 | 154 | | RF | 0.5102 | -0.21 | -0.22 | -1.10 | 132 |
-
-2) 자산 가치 변화 그래프 (Equity Curve)
-각 모델의 자산 가치 변화를 Buy & Hold(점선) 전략과 비교한 그래프입니다. (실제 출력된 Equity Curve 이미지를 여기에 첨부하세요)
-
-3) 낙폭 변화 그래프 (Drawdown Curve)
-각 전략이 겪은 최대 손실폭(Drawdown)을 시각화하여 리스크 관리 능력을 보여줍니다. (실제 출력된 Drawdown Curve 이미지를 여기에 첨부하세요)
-
-6. 결론 및 개선점
-이번 프로젝트는 단순한 수학적 점화식을 넘어, PyTorch를 활용한 딥러닝 모델을 실제 금융 데이터에 적용해 보았다는 데 큰 의의가 있습니다. 200 Epochs의 충분한 학습과 Dropout을 적용한 결과, **MLP 모델이 기존 머신러닝 모델(RF, SVM) 대비 경쟁력 있는 정확도(Accuracy)**를 보여주었습니다.
-
-하지만 수수료를 포함한 엄격한 백테스팅 환경에서는 단순한 'Buy & Hold' 전략을 이기는 것이 쉽지 않음을 확인했습니다. 이는 단순한 등락 예측을 넘어, **'확실한 기회에만 베팅'**하고 '자산을 지키는(Drawdown 방어)' 전략이 더 중요함을 시사합니다.
-
-향후 발전 방향은 다음과 같습니다:
-
-시계열 특화 모델 도입: MLP 대신 **LSTM(Long Short-Term Memory)**이나 GRU 모델을 적용하여 시계열 데이터의 장기 의존성을 학습.
-
-동적 임계값: 시장의 변동성(VIX 등)에 따라 매수/매도 기준 확률을 동적으로 조절하는 알고리즘 도입.
-
-앙상블 전략: MLP의 예측값과 Random Forest의 변수 중요도를 결합하여 예측의 안정성 확보.
-
-지난 학기 프로젝트가 '구현'에 초점을 맞췄다면, 이번 학기는 **'데이터 기반의 의사결정'과 '딥러닝의 실무적 검증'**을 경험하는 값진 시간이었습니다.
-
-사용한 라이브러리
-Python
-
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import yfinance as yf
-
-# Machine Learning
-from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.svm import SVC
-from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import accuracy_score
-
-# Deep Learning (PyTorch)
-import torch
-import torch.nn as nn
-from torch.utils.data import DataLoader, TensorDataset
