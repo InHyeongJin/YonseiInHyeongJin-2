@@ -137,6 +137,7 @@ def backtest(prices, probs, cfg: BacktestConfig):
 | MLP | 0.5421 | 0.0000 (0.0%) | 0.0000 | 0.0000 | 0 |
 
 ### 4.2. 자산 가치 변화 그래프 (Equity Curve)
+<img width="1023" height="470" alt="image" src="https://github.com/user-attachments/assets/03835952-b6c9-4d8b-a2d9-1b91f1afffb2" />
 
 *(위 그래프는 테스트 기간 동안 각 모델의 자산 가치 변화를 나타냅니다. 주황색 선인 Logistic Regression 모델이 파란색 점선인 Buy & Hold 벤치마크를 상회하는 것을 확인할 수 있습니다.)*
 
