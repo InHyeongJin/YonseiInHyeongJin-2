@@ -137,12 +137,13 @@ def backtest(prices, probs, cfg: BacktestConfig):
 | MLP | 0.5421 | 0.0000 (0.0%) | 0.0000 | 0.0000 | 0 |
 
 ### 4.2. 자산 가치 변화 그래프 (Equity Curve)
-<img width="1023" height="470" alt="image" src="https://github.com/user-attachments/assets/03835952-b6c9-4d8b-a2d9-1b91f1afffb2" />
+<img width="1023" height="470" alt="image" src="https://github.com/user-attachments/assets/c21b8ea2-8958-464b-a7fd-ac05dc6d6207" />
 
 *(위 그래프는 테스트 기간 동안 각 모델의 자산 가치 변화를 나타냅니다. 주황색 선인 Logistic Regression 모델이 파란색 점선인 Buy & Hold 벤치마크를 상회하는 것을 확인할 수 있습니다.)*
 
 ### 4.3. 변수 중요도 분석 (Feature Importance)
-![Feature Importance](image_08d3c2.png)
+<img width="1030" height="393" alt="image" src="https://github.com/user-attachments/assets/1d5ae70d-34e1-4c80-b63c-785fc27f2f86" />
+
 *(Random Forest 모델이 추출한 변수 중요도입니다. 최근 1~2일의 변동보다 `ret_lag_9`(9일 전 수익률)와 같은 과거의 추세 정보가 예측에 더 중요한 영향을 미치는 것으로 나타났습니다.)*
 
 ### 4.4. 결과 심층 분석
