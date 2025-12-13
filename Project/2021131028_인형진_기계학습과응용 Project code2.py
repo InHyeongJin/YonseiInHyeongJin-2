@@ -1,14 +1,7 @@
 !pip -q install yfinance
 
 # ============================================================
-# ML Trading Project - FINAL COMPLETE VERSION
-# Features:
-# 1. Real Data (yfinance)
-# 2. Advanced Features (Lags, MA, Vol, Mom)
-# 3. PyTorch MLP (Dropout + 200 Epochs)
-# 4. Strict Trading Threshold (0.60)
-# 5. Benchmark (Buy & Hold) Comparison
-# 6. Two Plots (Equity Curve & Drawdown)
+# ML Trading Project - FINAL COMPLETE VERSION (w/ Early Stopping & Feature Importance)
 # ============================================================
 
 import math
@@ -18,6 +11,7 @@ import matplotlib.pyplot as plt
 
 from dataclasses import dataclass
 from typing import Tuple, Dict
+from copy import deepcopy 
 
 # sklearn
 from sklearn.linear_model import LogisticRegression
@@ -27,6 +21,7 @@ from sklearn.svm import SVC
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
+from sklearn.model_selection import train_test_split 
 
 # torch
 import torch
@@ -66,7 +61,6 @@ def load_price_yf(ticker: str, start: str, end: str) -> pd.DataFrame:
         progress=False
     )
 
-    # MultiIndex 제거 (yfinance 최신 버전 호환)
     if isinstance(data.columns, pd.MultiIndex):
         data.columns = data.columns.get_level_values(0)
 
@@ -122,7 +116,7 @@ def build_features(df: pd.DataFrame, cfg: FeatureConfig) -> pd.DataFrame:
 
 
 # ============================================================
-# Torch MLP (Improved)
+# Torch MLP (Improved with Early Stopping)
 # ============================================================
 
 class TorchMLP(nn.Module):
@@ -131,7 +125,7 @@ class TorchMLP(nn.Module):
         self.net = nn.Sequential(
             nn.Linear(in_dim, 64),
             nn.ReLU(),
-            nn.Dropout(0.1),  # 과적합 방지용 Dropout
+            nn.Dropout(0.1),
             nn.Linear(64, 64),
             nn.ReLU(),
             nn.Dropout(0.1),
@@ -145,30 +139,65 @@ class TorchMLPModel:
     def __init__(self, in_dim):
         self.scaler = StandardScaler()
         self.model = TorchMLP(in_dim)
-        self.epochs = 200  # 충분한 학습 (200 Epochs)
+        self.epochs = 500 # 조기 종료를 고려해 넉넉하게 설정
+        self.patience = 20 # 20번의 에포크 동안 개선 없으면 종료
 
     def fit(self, X, y):
-        set_seed(42) # 학습 시드 고정
-        Xs = self.scaler.fit_transform(X).astype(np.float32)
-        y = y.astype(np.float32)
+        set_seed(42)
+        # 훈련 데이터에서 검증 데이터(20%) 분리
+        X_tr, X_val, y_tr, y_val = train_test_split(
+            X, y, test_size=0.2, random_state=42, stratify=y
+        )
 
-        ds = TensorDataset(torch.tensor(Xs), torch.tensor(y))
+        # 스케일링
+        X_tr_s = self.scaler.fit_transform(X_tr).astype(np.float32)
+        X_val_s = self.scaler.transform(X_val).astype(np.float32)
+        y_tr = y_tr.astype(np.float32)
+        y_val = y_val.astype(np.float32)
+
+        ds = TensorDataset(torch.tensor(X_tr_s), torch.tensor(y_tr))
         dl = DataLoader(ds, batch_size=64, shuffle=True)
 
         opt = torch.optim.Adam(self.model.parameters(), lr=0.001)
         loss_fn = nn.BCEWithLogitsLoss()
 
+        best_loss = float('inf')
+        best_weights = deepcopy(self.model.state_dict())
+        counter = 0
+        
         self.model.train()
         for epoch in range(self.epochs):
+            # 훈련 (Training)
             for xb, yb in dl:
                 opt.zero_grad()
                 loss = loss_fn(self.model(xb), yb)
                 loss.backward()
                 opt.step()
             
-            # (Optional) 학습 진행상황 출력
+            # 검증 (Validation)
+            self.model.eval()
+            with torch.no_grad():
+                val_pred = self.model(torch.tensor(X_val_s))
+                val_loss = loss_fn(val_pred, torch.tensor(y_val)).item()
+            self.model.train()
+
+            # 조기 종료 로직 (Early Stopping Logic)
+            if val_loss < best_loss:
+                best_loss = val_loss
+                best_weights = deepcopy(self.model.state_dict())
+                counter = 0
+            else:
+                counter += 1
+                if counter >= self.patience:
+                    print(f"*** Early Stopping at Epoch {epoch+1} (Best Val Loss: {best_loss:.4f}) ***")
+                    break
+            
             if (epoch+1) % 50 == 0:
-                print(f"Epoch {epoch+1}/{self.epochs}, Loss: {loss.item():.4f}")
+                print(f"Epoch {epoch+1}/{self.epochs}, Train Loss: {loss.item():.4f}, Val Loss: {val_loss:.4f}")
+
+        # 최적의 가중치 복구
+        if best_weights is not None:
+            self.model.load_state_dict(best_weights)
 
     def predict_proba(self, X):
         self.model.eval()
@@ -183,8 +212,8 @@ class TorchMLPModel:
 
 @dataclass
 class BacktestConfig:
-    p_buy: float = 0.60   # 신중한 매수 (0.60)
-    p_sell: float = 0.40  # 신중한 매도 (0.40)
+    p_buy: float = 0.60
+    p_sell: float = 0.40
     commission: float = 0.0005
     slippage: float = 0.0005
     initial_cash: float = 10000.0
@@ -193,8 +222,6 @@ def backtest(prices, probs, cfg: BacktestConfig):
     cash = cfg.initial_cash
     shares = 0.0
     equity = []
-    
-    # 거래 기록 (Action 확인용)
     trade_count = 0
 
     for price, p in zip(prices, probs):
@@ -217,7 +244,7 @@ def backtest(prices, probs, cfg: BacktestConfig):
     drawdown = (equity - np.maximum.accumulate(equity)) / np.maximum.accumulate(equity)
     ret = np.diff(equity) / equity[:-1]
 
-    sharpe = np.mean(ret) / np.std(ret) * np.sqrt(252) if np.std(ret) > 0 else 0.0 # 연율화(252일 기준)
+    sharpe = np.mean(ret) / np.std(ret) * np.sqrt(252) if np.std(ret) > 0 else 0.0
 
     return {
         "CumRet": equity[-1] / equity[0] - 1,
@@ -230,7 +257,7 @@ def backtest(prices, probs, cfg: BacktestConfig):
 
 
 # ============================================================
-# Run Experiment
+# Run Experiment (Feature Importance Plot 추가)
 # ============================================================
 
 def run():
@@ -271,7 +298,6 @@ def run():
     # 2. Benchmark (Buy & Hold) Calculation
     buy_hold_equity = prices_te / prices_te[0] * bt_cfg.initial_cash
     buy_hold_ret = (prices_te[-1] / prices_te[0]) - 1
-    # Buy & Hold Drawdown 계산
     buy_hold_dd = (buy_hold_equity - np.maximum.accumulate(buy_hold_equity)) / np.maximum.accumulate(buy_hold_equity)
 
     models = {
@@ -288,13 +314,15 @@ def run():
 
     rows = []
     equity_curves = {}
-    drawdowns = {}  # [추가] 낙폭 데이터 저장소
+    drawdowns = {}
     
-    # 벤치마크 데이터 저장
     equity_curves["Buy&Hold"] = buy_hold_equity
     drawdowns["Buy&Hold"] = buy_hold_dd
 
     print("\nTraining models...")
+    # RF 모델의 feature_importances_를 추출하기 위해 별도 저장
+    rf_model = models["RF"]
+
     for name, model in models.items():
         print(f" -> {name}...")
         if name == "MLP":
@@ -318,7 +346,7 @@ def run():
         })
 
         equity_curves[name] = bt["Equity"]
-        drawdowns[name] = bt["Drawdown"] # [추가] Drawdown 데이터 저장
+        drawdowns[name] = bt["Drawdown"]
 
     # 결과 테이블 출력
     result_df = pd.DataFrame(rows).sort_values("CumRet", ascending=False)
@@ -327,7 +355,7 @@ def run():
     print(f"Benchmark (Buy&Hold) Return: {buy_hold_ret:.4f}")
     print(result_df)
 
-    # 그래프 1: 자산 가치 변화 (Equity Curve)
+    # --- 그래프 1: 자산 가치 변화 (Equity Curve) ---
     plt.figure(figsize=(12, 5))
     for name, eq in equity_curves.items():
         style = '--' if name == "Buy&Hold" else '-'
@@ -342,7 +370,7 @@ def run():
     plt.grid(True, alpha=0.3)
     plt.show()
 
-    # 그래프 2: 낙폭 변화 (Drawdown Curve) - [복구 완료]
+    # --- 그래프 2: 낙폭 변화 (Drawdown Curve) ---
     plt.figure(figsize=(12, 4))
     for name, dd in drawdowns.items():
         style = '--' if name == "Buy&Hold" else '-'
@@ -356,6 +384,23 @@ def run():
     plt.legend()
     plt.grid(True, alpha=0.3)
     plt.show()
+    
+    # --- 그래프 3: Random Forest Feature Importance (추가됨) ---
+    if hasattr(rf_model, 'feature_importances_'):
+        importances = rf_model.feature_importances_
+        indices = np.argsort(importances)[::-1]
+        
+        top_n = 10
+        indices_top = indices[:top_n]
+
+        plt.figure(figsize=(10, 6))
+        plt.title(f"Feature Importances (Random Forest) - Top {top_n}")
+        plt.bar(range(top_n), importances[indices_top], align="center")
+        plt.xticks(range(top_n), [feature_cols[i] for i in indices_top], rotation=45, ha='right')
+        plt.tight_layout()
+        plt.show()
+    else:
+        print("\nRandom Forest 모델에서 Feature Importance를 찾을 수 없습니다.")
 
 if __name__ == "__main__":
     run()
