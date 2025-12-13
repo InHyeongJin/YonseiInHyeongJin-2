@@ -1,3 +1,5 @@
+!pip -q install yfinance
+
 # ============================================================
 # ML Trading Project - FINAL STABLE VERSION (Colab)
 # Table + Transaction Costs + Drawdown + Train/Test Dates
