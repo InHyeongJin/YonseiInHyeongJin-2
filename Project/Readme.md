@@ -165,16 +165,18 @@ Training models...
 ### 4.3. 시각화 결과 (Visualizations)
 
 #### (1) 자산 가치 변화 (Equity Curves)
+<img width="1023" height="470" alt="image" src="https://github.com/user-attachments/assets/97ff2d40-b289-4fbc-b4c9-9589fb54b0d9" />
 Logistic Regression(주황색)이 Benchmark(파란 점선)를 상회하며 우상향하는 모습을 확인할 수 있습니다.
-![Equity Curve](image_b1e293.png)
+
 
 #### (2) 낙폭 변화 (Drawdown Curves)
+<img width="1030" height="393" alt="image" src="https://github.com/user-attachments/assets/373acb28-11bb-4b8f-8bd8-3dc13fb12cfe" />
 대부분의 모델이 시장 하락기에 자산 가치가 감소하였으나, SVM과 MLP는 매매를 하지 않아 Drawdown이 0으로 유지되었습니다.
-![Drawdown Curve](image_b1e27a.png)
+
 
 #### (3) 변수 중요도 (Feature Importance)
+<img width="989" height="590" alt="image" src="https://github.com/user-attachments/assets/171c1807-2566-4aba-8e63-2902321dbb15" />
 Random Forest 모델 분석 결과, `ret_lag_9`(9일 전 수익률)와 같은 과거의 추세 정보가 단기 변동성보다 예측에 더 중요한 영향을 미쳤습니다.
-![Feature Importance](image_08d3c2.png)
 
 ---
 
