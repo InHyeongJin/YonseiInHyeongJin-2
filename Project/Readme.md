@@ -1,4 +1,4 @@
-# 📈 딥러닝 기반 주가 예측 및 자동매매 시스템
+# 주제: 딥러닝 기반 주가 예측 및 자동매매 시스템
 ### 기계학습과 응용 기말 프로젝트 / [본인 이름] ([본인 학번])
 
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue) ![PyTorch](https://img.shields.io/badge/PyTorch-Deep%20Learning-red) ![Scikit-Learn](https://img.shields.io/badge/scikit--learn-Machine%20Learning-orange)
