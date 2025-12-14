@@ -1,5 +1,5 @@
 # 📈 딥러닝 기반 주가 예측 및 자동매매 시스템
-### 기계학습과응용 기말 프로젝트 / 인형진 2021131028
+### 기계학습과 응용 기말 프로젝트 / [본인 이름] ([본인 학번])
 
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue) ![PyTorch](https://img.shields.io/badge/PyTorch-Deep%20Learning-red) ![Scikit-Learn](https://img.shields.io/badge/scikit--learn-Machine%20Learning-orange)
 
@@ -18,14 +18,14 @@
 ## 1. 프로젝트 개요 (Overview)
 
 ### 1.1. 배경 및 동기 (Motivation)
-지난 학기 ‘수학과 프로그래밍’ 수업에서 점화식(Recurrence Relation)을 활용한 주가 예측 시뮬레이터를 개발한 경험이 있습니다. 당시 프로젝트는 수학적 모델을 코드로 구현하는 과정 자체에는 성공했으나, **랜덤하게 생성된 가상 데이터(Random Walk)**를 사용했다는 점과 단순한 **선형 모델**에만 의존했다는 근본적인 한계가 있었습니다. 이는 실제 금융 시장의 고차원적 복잡성과 불확실성을 반영하기에는 역부족이었습니다.
+지난 학기 ‘수학과 프로그래밍’ 수업에서 점화식(Recurrence Relation)을 활용한 주가 예측 시뮬레이터를 개발한 경험이 있습니다. 당시 프로젝트는 수학적 모델을 코드로 구현하는 과정 자체에는 성공했으나, **랜덤하게 생성된 가상 데이터 (Random Walk)** 를 사용했다는 점과 단순한 **선형 모델**에만 의존했다는 근본적인 한계가 있었습니다. 이는 실제 금융 시장의 고차원적 복잡성과 불확실성을 반영하기에는 역부족이었습니다.
 
 ### 1.2. 프로젝트 목표 (Objectives)
 이번 학기 **<기계학습과 응용>** 수업을 통해, 실제 데이터는 훨씬 비선형적인 패턴(Non-linear Pattern)을 내포하고 있음을 학습했습니다. 이에 본 프로젝트는 이전의 경험을 발전시켜 다음과 같은 심화된 목표를 설정하였습니다.
 
 1.  **Real-World Integration:** 가상의 데이터가 아닌 **Yahoo Finance API**를 연동하여, 실제 시장(Apple Inc.)의 Historical Data를 수집하고 전처리하는 파이프라인을 구축합니다.
-2.  **Advanced Modeling:** 단순 회귀 분석을 넘어, **PyTorch 기반의 MLP(Multi-Layer Perceptron)** 모델을 직접 설계하고 학습시켜 딥러닝의 효용성을 검증합니다.
-3.  **Robust Backtesting:** 단순히 예측 정확도만 높이는 것이 아니라, **조기 종료(Early Stopping)** 기법을 통해 과적합을 제어하고, **거래 비용(Commission & Slippage)**을 반영한 현실적인 자동매매 시뮬레이션을 수행합니다.
+2.  **Advanced Modeling:** 단순 회귀 분석을 넘어, **PyTorch 기반의 MLP (Multi-Layer Perceptron)** 모델을 직접 설계하고 학습시켜 딥러닝의 효용성을 검증합니다.
+3.  **Robust Backtesting:** 단순히 예측 정확도만 높이는 것이 아니라, **조기 종료 (Early Stopping)** 기법을 통해 과적합을 제어하고, **거래 비용 (Commission & Slippage)** 을 반영한 현실적인 자동매매 시뮬레이션을 수행합니다.
 
 ---
 
@@ -64,8 +64,7 @@ def build_features(df: pd.DataFrame, cfg: FeatureConfig) -> pd.DataFrame:
     
     # ... (로그 가격 및 수익률 계산 생략) ...
 
-    # 이동평균 괴리율 (Moving Average Ratio) 생성
-    # 주가가 이동평균선보다 얼마나 위에 있는지(과매수), 아래에 있는지(과매도) 판단
+    # Moving Average Ratio 생성
     for w in cfg.ma_windows:
         ma = out["price"].rolling(w).mean()
         out[f"ma_ratio_{w}"] = out["price"] / ma - 1.0
@@ -167,25 +166,25 @@ Training models...
 
 #### (1) 자산 가치 변화 (Equity Curves)
 Logistic Regression(주황색)이 Benchmark(파란 점선)를 상회하며 우상향하는 모습을 확인할 수 있습니다.
-![Equity Curve](equity_curve.png)
+![Equity Curve](image_b1e293.png)
 
 #### (2) 낙폭 변화 (Drawdown Curves)
 대부분의 모델이 시장 하락기에 자산 가치가 감소하였으나, SVM과 MLP는 매매를 하지 않아 Drawdown이 0으로 유지되었습니다.
-![Drawdown Curve](drawdown_curve.png)
+![Drawdown Curve](image_b1e27a.png)
 
 #### (3) 변수 중요도 (Feature Importance)
 Random Forest 모델 분석 결과, `ret_lag_9`(9일 전 수익률)와 같은 과거의 추세 정보가 단기 변동성보다 예측에 더 중요한 영향을 미쳤습니다.
-![Feature Importance](feature_importance.png)
+![Feature Importance](image_08d3c2.png)
 
 ---
 
 ## 5. 결과 분석 및 고찰 (Discussion)
 
 ### 5.1. 단순함의 승리 (Occam's Razor)
-실험 기간 동안 시장은 전반적인 **강세장(Bull Market)**이었습니다. 가장 단순한 선형 모델인 **Logistic Regression**은 이러한 상승 추세(Trend)를 빠르게 감지하여 초기에 매수한 후 계속 보유하는 전략을 취했습니다. 복잡한 패턴을 찾기보다는 전체적인 흐름에 편승하는 전략이 유효했으며, 결과적으로 86.5%라는 가장 높은 수익률을 기록했습니다.
+실험 기간 동안 시장은 전반적인 **강세장 (Bull Market)** 이었습니다. 가장 단순한 선형 모델인 **Logistic Regression**은 이러한 상승 추세(Trend)를 빠르게 감지하여 초기에 매수한 후 계속 보유하는 전략을 취했습니다. 복잡한 패턴을 찾기보다는 전체적인 흐름에 편승하는 전략이 유효했으며, 결과적으로 86.5%라는 가장 높은 수익률을 기록했습니다.
 
 ### 5.2. 딥러닝 모델의 보수적 성향
-반면, **MLP 모델**은 0%의 수익률을 기록했습니다. 이는 Early Stopping으로 인해 과적합은 방지되었으나, 시장의 노이즈 속에서 60% 이상의 높은 확신을 주는 패턴을 찾지 못했기 때문입니다. 즉, 예측 확률이 임계값(Threshold)을 넘지 못해 **"확실하지 않으면 투자하지 않는다"**는 보수적인 결정을 내린 것으로 해석됩니다. 이는 손실을 보지 않았다는 점에서는 긍정적이나, 강세장에서의 기회비용을 잃었다는 한계가 있습니다.
+반면, **MLP 모델**은 0%의 수익률을 기록했습니다. 이는 Early Stopping으로 인해 과적합은 방지되었으나, 시장의 노이즈 속에서 60% 이상의 높은 확신을 주는 패턴을 찾지 못했기 때문입니다. 즉, 예측 확률이 임계값(Threshold)을 넘지 못해 **"확실하지 않으면 투자하지 않는다"** 는 보수적인 결정을 내린 것으로 해석됩니다. 이는 손실을 보지 않았다는 점에서는 긍정적이나, 강세장에서의 기회비용을 잃었다는 한계가 있습니다.
 
 ### 5.3. Feature Importance의 시사점
 Random Forest 분석 결과, 직전일의 수익률보다 `Lag 9` (약 2주 전)의 수익률이 더 중요한 변수로 선정되었습니다. 이는 주가 데이터에 단기적인 노이즈가 많아, 오히려 약간의 시차가 있는 과거 데이터가 추세 파악에 도움이 될 수 있음을 시사합니다.
@@ -194,9 +193,9 @@ Random Forest 분석 결과, 직전일의 수익률보다 `Lag 9` (약 2주 전)
 
 ## 6. 결론 (Conclusion)
 
-본 프로젝트를 통해 **"복잡한 알고리즘이 항상 더 나은 수익을 보장하지 않는다"**는 금융 데이터 분석의 중요한 교훈을 얻었습니다. 특히 노이즈가 심한 주가 데이터에서는 복잡한 딥러닝 모델이 오히려 과적합을 피하기 위해 지나치게 소극적으로 학습될 수 있음을 확인했습니다.
+본 프로젝트를 통해 **"복잡한 알고리즘이 항상 더 나은 수익을 보장하지 않는다"** 는 금융 데이터 분석의 중요한 교훈을 얻었습니다. 특히 노이즈가 심한 주가 데이터에서는 복잡한 딥러닝 모델이 오히려 과적합을 피하기 위해 지나치게 소극적으로 학습될 수 있음을 확인했습니다.
 
-또한, 단순한 예측 정확도(Accuracy)보다는 **임계값(Threshold) 설정**과 **수수료(Cost) 관리**가 실제 포트폴리오 성과에 지대한 영향을 미친다는 것을 실증적으로 배웠습니다. 향후에는 **Grid Search**를 통한 최적의 매매 임계값 탐색과 **LSTM/Transformer**와 같은 시계열 특화 모델 도입을 통해 시스템을 고도화할 계획입니다.
+또한, 단순한 예측 정확도(Accuracy)보다는 **임계값 (Threshold) 설정**과 **수수료 (Cost) 관리**가 실제 포트폴리오 성과에 지대한 영향을 미친다는 것을 실증적으로 배웠습니다. 향후에는 **Grid Search**를 통한 최적의 매매 임계값 탐색과 **LSTM/Transformer**와 같은 시계열 특화 모델 도입을 통해 시스템을 고도화할 계획입니다.
 
 ---
 
