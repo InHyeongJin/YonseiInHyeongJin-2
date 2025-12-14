@@ -1,4 +1,4 @@
-# 📈 Deep Learning Based Stock Prediction & Automated Trading System
+# 📈 딥러닝 기반 주가 예측 및 자동매매 시스템
 ### 기계학습과 응용 기말 프로젝트 / [본인 이름] ([본인 학번])
 
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue) ![PyTorch](https://img.shields.io/badge/PyTorch-Deep%20Learning-red) ![Scikit-Learn](https://img.shields.io/badge/scikit--learn-Machine%20Learning-orange)
@@ -127,27 +127,55 @@ def backtest(prices, probs, cfg: BacktestConfig):
 
 ## 4. 실험 환경 및 결과 (Experiments & Results)
 
+### 4.1. 실험 환경 및 로그 (Experimental Log)
+
 * **대상 종목:** Apple (AAPL)
-* **학습 기간:** 2018-01-01 ~ 2022-11-30
-* **테스트 기간:** 2022-12-01 ~ 2024-12-30 (약 2년)
+* **Train Period:** 2018-01-31 ~ 2022-11-30
+* **Test Period:** 2022-12-01 ~ 2024-12-30
 
-### 4.1. 정량적 성과 분석 (Model Comparison)
+실제 모델 학습 과정에서 딥러닝 모델(MLP)은 **Early Stopping**이 작동하여 과적합을 방지했습니다.
 
-| Model | Accuracy | CumRet (수익률) | MDD (최대낙폭) | Sharpe Ratio | Trades |
+```text
+Downloading data for AAPL...
+
+=== Train/Test Period ===
+Train: 2018-01-31 ~ 2022-11-30
+Test : 2022-12-01 ~ 2024-12-30
+
+Training models...
+ -> Logistic...
+ -> RF...
+ -> SVM...
+ -> MLP...
+*** Early Stopping at Epoch 23 (Best Val Loss: 0.6902) ***
+```
+
+### 4.2. 정량적 성과 비교 (Model Comparison)
+
+실험 결과, 가장 단순한 모델인 **Logistic Regression**이 가장 높은 수익률을 기록했습니다.
+
+**Benchmark (Buy&Hold) Return: 0.7184 (71.8%)**
+
+| Model | Accuracy | CumRet (수익률) | MDD (최대낙폭) | Sharpe | Trades |
 |:---:|:---:|:---:|:---:|:---:|:---:|
 | **Logistic** | **0.5421** | **0.8652 (86.5%)** | **-0.1661** | **1.5100** | **1** |
-| Benchmark | - | 0.7184 (71.8%) | -0.22XX | - | - |
 | RF | 0.5383 | 0.3226 (32.2%) | -0.1661 | 0.8363 | 1 |
 | SVM | 0.5517 | 0.0000 (0.0%) | 0.0000 | 0.0000 | 0 |
 | MLP | 0.5421 | 0.0000 (0.0%) | 0.0000 | 0.0000 | 0 |
 
-### 4.2. 자산 가치 변화 그래프 (Equity Curve)
-![Equity Curve](image_08d3f7.png)
-*(위 그래프는 테스트 기간 동안 각 모델의 자산 가치 변화를 나타냅니다. 주황색 선인 Logistic Regression 모델이 파란색 점선인 Buy & Hold 벤치마크를 상회하는 것을 확인할 수 있습니다.)*
+### 4.3. 시각화 결과 (Visualizations)
 
-### 4.3. 변수 중요도 분석 (Feature Importance)
-![Feature Importance](image_08d3c2.png)
-*(Random Forest 모델이 추출한 변수 중요도입니다. 최근 1~2일의 변동보다 `ret_lag_9`(9일 전 수익률)와 같은 과거의 추세 정보가 예측에 더 중요한 영향을 미치는 것으로 나타났습니다.)*
+#### (1) 자산 가치 변화 (Equity Curves)
+Logistic Regression(주황색)이 Benchmark(파란 점선)를 상회하며 우상향하는 모습을 확인할 수 있습니다.
+![Equity Curve](equity_curve.png)
+
+#### (2) 낙폭 변화 (Drawdown Curves)
+대부분의 모델이 시장 하락기에 자산 가치가 감소하였으나, SVM과 MLP는 매매를 하지 않아 Drawdown이 0으로 유지되었습니다.
+![Drawdown Curve](drawdown_curve.png)
+
+#### (3) 변수 중요도 (Feature Importance)
+Random Forest 모델 분석 결과, `ret_lag_9`(9일 전 수익률)와 같은 과거의 추세 정보가 단기 변동성보다 예측에 더 중요한 영향을 미쳤습니다.
+![Feature Importance](feature_importance.png)
 
 ---
 
