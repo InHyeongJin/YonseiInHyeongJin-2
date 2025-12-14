@@ -5,7 +5,7 @@
 
 ---
 
-## 📑 목차 (Table of Contents)
+## 목차 (Table of Contents)
 1. [프로젝트 개요 (Overview)](#1-프로젝트-개요-overview)
 2. [이론적 배경 및 방법론 (Methodology)](#2-이론적-배경-및-방법론-methodology)
 3. [시스템 설계 및 구현 (Implementation)](#3-시스템-설계-및-구현-implementation)
@@ -201,7 +201,7 @@ Random Forest 분석 결과, 직전일의 수익률보다 `Lag 9` (약 2주 전)
 
 ---
 
-## 🛠 Tech Stack
+## Tech Stack
 
 * **Language:** Python 3.10
 * **Data Source:** `yfinance`
